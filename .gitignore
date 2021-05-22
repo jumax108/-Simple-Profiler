@@ -1,0 +1,52 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+
+SimplePacker/.vs/
+SimplePacker/data/
+SimplePacker/Debug/
+SimplePacker/Release/
+SimplePacker/filelist.txt
+SimplePacker/output
+
+*.exe.recipe
+SimplePacker/Release/SimplePacker.tlog/
+
+SimplePacker/Release/*.iobj
+SimplePacker/Release/*.ipdb
+*.log
+*.obj
+SimplePacker/Release/*.pdb
+SimplePacker/Release/SimplePacker.vcxproj.FileListAbsolute.txt
+
+SimplePacker/x64/
