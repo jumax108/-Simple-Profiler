@@ -22,7 +22,9 @@ int main() {
 
 
 
-	sp.printResult();
+	sp.printToConsole();
+
+	sp.printToFile();
 
 
 	return 0;

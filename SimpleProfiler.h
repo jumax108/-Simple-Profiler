@@ -29,11 +29,13 @@ public:
 			}
 		}
 
-		info[idx].callCnt += 1;
-		info[idx].use = true;
-		strcpy_s(info[idx].name, name);	
+		Profile* ptrInfo = &info[idx];
 
-		QueryPerformanceCounter(&info[idx].start);
+		ptrInfo->callCnt += 1;
+		ptrInfo->use = true;
+		strcpy_s(ptrInfo->name, name);
+
+		QueryPerformanceCounter(&ptrInfo->start);
 	}
 
 	void profileEnd(const char name[100]) {
@@ -45,23 +47,55 @@ public:
 		LARGE_INTEGER endTime;
 		QueryPerformanceCounter(&endTime);
 
-		__int64 time = endTime.QuadPart - info[idx].start.QuadPart;
+		Profile* ptrInfo = &info[idx];
 
-		if (info[idx].max < time) {
-			info[idx].max = time;
+		__int64 time = endTime.QuadPart - ptrInfo->start.QuadPart;
+
+		if (ptrInfo->max < time) {
+			ptrInfo->max = time;
 		}
 
-		if (info[idx].min > time) {
-			info[idx].min = time;
+		if (ptrInfo->min > time) {
+			ptrInfo->min = time;
 		}
 
-		info[idx].sum += time;
-
-		info[idx].use = false;
+		ptrInfo->sum += time;
+		ptrInfo->use = false;
 
 	}
 
-	void printResult() {
+	void printToFile() {
+
+		FILE* outFile;
+		fopen_s(&outFile, "profiler.txt", "w");
+
+		fprintf_s(outFile, "---------------------------------------------------------------------------------------------\n");
+		fprintf_s(outFile, "%20s | %15s | %15s | %15s | %15s |\n", "Name", "Average", "Min", "Max", "Call");
+		fprintf_s(outFile, "---------------------------------------------------------------------------------------------\n");
+		
+		for (int infoCnt = 0; infoCnt < 50; infoCnt++) {
+			
+			Profile* ptrInfo = &info[infoCnt];
+
+			if (ptrInfo->callCnt > 0) {
+				ptrInfo->sum = ptrInfo->sum - ptrInfo->max - ptrInfo->min;
+				ptrInfo->callCnt -= 2;
+				fprintf_s(outFile, "%20s | %15lf | %15lf | %15lf | %15d \n",
+					ptrInfo->name,
+					ptrInfo->sum / (double)freq.QuadPart / ptrInfo->callCnt,
+					ptrInfo->min / (double)freq.QuadPart,
+					ptrInfo->max / (double)freq.QuadPart,
+					ptrInfo->callCnt);
+			}
+		}
+		fprintf_s(outFile, "---------------------------------------------------------------------------------------------\n");
+		
+
+		fclose(outFile);
+
+	}
+	
+	void printToConsole() {
 		for (int infoCnt = 0; infoCnt < 50; infoCnt++) {
 			if (info[infoCnt].callCnt > 0) {
 				info[infoCnt].sum = info[infoCnt].sum - info[infoCnt].max - info[infoCnt].min;
