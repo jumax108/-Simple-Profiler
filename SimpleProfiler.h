@@ -80,11 +80,11 @@ public:
 			if (ptrInfo->callCnt > 0) {
 				ptrInfo->sum = ptrInfo->sum - ptrInfo->max - ptrInfo->min;
 				ptrInfo->callCnt -= 2;
-				fprintf_s(outFile, "%20s | %15lf | %15lf | %15lf | %15d \n",
+				fprintf_s(outFile, "%20s | %12.3lf us | %12.3lf us | %12.3lf us | %15d \n",
 					ptrInfo->name,
-					ptrInfo->sum / (double)freq.QuadPart / ptrInfo->callCnt,
-					ptrInfo->min / (double)freq.QuadPart,
-					ptrInfo->max / (double)freq.QuadPart,
+					ptrInfo->sum / ((double)freq.QuadPart / 1000000) / ptrInfo->callCnt,
+					ptrInfo->min / ((double)freq.QuadPart / 1000000),
+					ptrInfo->max / ((double)freq.QuadPart / 1000000),
 					ptrInfo->callCnt);
 			}
 		}
