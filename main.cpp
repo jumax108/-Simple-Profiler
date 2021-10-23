@@ -20,10 +20,6 @@ int main() {
 		printf("%d\n", i);
 	}
 
-
-
-	sp.printToConsole();
-
 	sp.printToFile();
 
 
