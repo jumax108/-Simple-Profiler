@@ -1,15 +1,25 @@
 ﻿#include <stdio.h>
 #include <Windows.h>
 #include <time.h>
+#include <map>
+#include <DbgHelp.h>
+#include <strsafe.h>
+
+#include "dump.h"
+#include "log.h"
 #include "SimpleProfiler.h"
 
 void Sleep1Sec() {
-	Sleep(1000);
+	Sleep(999);
 }
 
-int main() {
+CLog logger;
+SimpleProfiler sp;
 
-	SimpleProfiler sp;
+int main() {
+	
+	logger.setDirectory(L"log");
+	logger.setPrintGroup(LOG_GROUP::LOG_ERROR);
 
 	for (int i = 0; i < 10; i++) {
 		sp.profileBegin("for");

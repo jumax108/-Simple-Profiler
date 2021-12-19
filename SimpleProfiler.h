@@ -1,9 +1,13 @@
 #pragma once
+
+extern CLog logger;
+
 class SimpleProfiler
 {
 public:
+
+
 	struct Profile {
-		bool use = false;
 		char name[100] = {0,};
 		LARGE_INTEGER start;
 		__int64 sum = 0;
@@ -17,50 +21,74 @@ public:
 public:
 
 	SimpleProfiler() {
+
+		tlsIndex = TlsAlloc();
+		if(tlsIndex == TLS_OUT_OF_INDEXES){
+			// loging
+
+			logger(L"profiler.txt", LOG_GROUP::LOG_ERROR, L"profiler tls alloc error, %s, %d", __FILEW__, __LINE__);
+
+			CDump::crash();
+		}
+
 		QueryPerformanceFrequency(&freq);
+		freq.QuadPart /= 1000000;
 	}
 	
 	void profileBegin(const char name[100]) {
+				
+		Profile* profile = getProfileData();
+
 		int idx = findIdx(name);
-		if (idx == -1) {
-			idx = getEmptyIdx();
-			if (idx == -1) {
-				killProcess();
+
+		if(idx == -1){
+
+			for(idx = 0; idx < 50; idx++){
+				if(profile[idx].callCnt == 0){
+					break;
+				}
 			}
+
+			profile[idx].callCnt = 1;
+			strcpy_s(profile[idx].name, name);
+
+		} else {
+
+			profile[idx].callCnt += 1;
+
 		}
+		
 
-		Profile* ptrInfo = &info[idx];
-
-		ptrInfo->callCnt += 1;
-		ptrInfo->use = true;
-		strcpy_s(ptrInfo->name, name);
-
-		QueryPerformanceCounter(&ptrInfo->start);
+		QueryPerformanceCounter(&profile[idx].start);
 	}
 
 	void profileEnd(const char name[100]) {
-		int idx = findIdx(name);
-		if (idx == -1) {
-			killProcess();
+		
+		Profile* profile = getProfileData();
+
+		for (int idx = 0; idx < 50; ++idx) {
+		
+			if(strcmp(name, profile[idx].name) != 0){
+				continue;
+			}
+
+			LARGE_INTEGER endTime;
+			QueryPerformanceCounter(&endTime);
+
+			__int64 time = endTime.QuadPart - profile[idx].start.QuadPart;
+
+			if (profile[idx].max < time) {
+				profile[idx].max = time;
+			}
+
+			if (profile[idx].min > time) {
+				profile[idx].min = time;
+			}
+
+			profile[idx].sum += time;
+
+			break;
 		}
-
-		LARGE_INTEGER endTime;
-		QueryPerformanceCounter(&endTime);
-
-		Profile* ptrInfo = &info[idx];
-
-		__int64 time = endTime.QuadPart - ptrInfo->start.QuadPart;
-
-		if (ptrInfo->max < time) {
-			ptrInfo->max = time;
-		}
-
-		if (ptrInfo->min > time) {
-			ptrInfo->min = time;
-		}
-
-		ptrInfo->sum += time;
-		ptrInfo->use = false;
 
 	}
 
@@ -71,19 +99,19 @@ public:
 
 		fprintf_s(outFile, "%20s | %15s | %15s | %15s | %15s \n", "Name", "Average", "Min", "Max", "Call");
 		
-		for (int infoCnt = 0; infoCnt < 50; infoCnt++) {
-			
-			Profile* ptrInfo = &info[infoCnt];
+		Profile* profile = getProfileData();
 
-			if (ptrInfo->callCnt > 0) {
-				ptrInfo->sum = ptrInfo->sum - ptrInfo->max - ptrInfo->min;
-				ptrInfo->callCnt -= 2;
+		for (int idx = 0; idx < 50; ++idx) {
+			
+			if (profile[idx].callCnt > 0) {
+				profile[idx].sum = profile[idx].sum - profile[idx].max - profile[idx].min;
+				profile[idx].callCnt -= 2;
 				fprintf_s(outFile, "%20s | %12.3lf us | %12.3lf us | %12.3lf us | %15d \n",
-					ptrInfo->name,
-					ptrInfo->sum / ((double)freq.QuadPart / 1000000) / ptrInfo->callCnt,
-					ptrInfo->min / ((double)freq.QuadPart / 1000000),
-					ptrInfo->max / ((double)freq.QuadPart / 1000000),
-					ptrInfo->callCnt);
+					profile[idx].name,
+					profile[idx].sum / (double)freq.QuadPart / profile[idx].callCnt,
+					profile[idx].min / (double)freq.QuadPart,
+					profile[idx].max / (double)freq.QuadPart,
+					profile[idx].callCnt);
 			}
 		}
 		
@@ -94,26 +122,44 @@ public:
 	
 
 private:
-	Profile info[50];
 
-	int findIdx(const char* name) {
+	unsigned int tlsIndex = 0;
+	unsigned short allocIndex = 0;
 
-		for (int infoCnt = 0; infoCnt < 50; ++infoCnt) {
-			if (strcmp(name, info[infoCnt].name) == 0) {
-				return infoCnt;
-			}
+	Profile profile[20][50]; 
+
+	Profile* getProfileData(){
+
+		Profile* ptr = (Profile*)TlsGetValue(tlsIndex);
+
+		if(ptr == nullptr){
+
+			int idx  = InterlockedIncrement16((SHORT*)&allocIndex) - 1;
+			ptr = profile[idx];
+			TlsSetValue(tlsIndex, ptr);
+
 		}
 
-		return -1;
+		return ptr;
+
 	}
+	
+	int findIdx(const char* name) {
+	
+		Profile* profile = getProfileData();
 
-	int getEmptyIdx() {
-		for (int infoCnt = 0; infoCnt < 50; ++infoCnt) {
-			if (info[infoCnt].use == 0 && info[infoCnt].callCnt == 0) {
-				return infoCnt;
+		int idx = 0;
+
+		for(; idx < 50 ; ++idx){
+						
+			if(strcmp(name, profile[idx].name) != 0){
+				continue;
 			}
-		}
 
+			return idx;
+
+		}
+		
 		return -1;
 	}
 
@@ -125,3 +171,6 @@ private:
 
 };
 
+
+
+//__declspec(thread) SimpleProfiler sp;
