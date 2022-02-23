@@ -3,14 +3,13 @@
 #include <stdio.h>
 #include <Windows.h>
 
-
-#include "../lib/dump/headers/dump.h"
+#include "dump/headers/dump.h"
 #pragma comment(lib, "lib/dump/dump")
 
-#include "../lib/log/headers/log.h"
+#include "log/headers/log.h"
 #pragma comment(lib, "lib/log/log")
 
-#include "option.h"
+#include "common.h"
 
 class CProfiler
 {

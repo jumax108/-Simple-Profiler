@@ -83,6 +83,7 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>release\</OutDir>
     <IntDir>objFile\</IntDir>
+    <IncludePath>C:\Users\user\Desktop\github\profiler\profiler\lib;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -141,7 +142,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="headers\option.h" />
+    <ClInclude Include="headers\common.h" />
     <ClInclude Include="headers\profiler.h" />
   </ItemGroup>
   <ItemGroup>
