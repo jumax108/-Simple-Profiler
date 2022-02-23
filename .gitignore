@@ -1,6 +1,8 @@
 
-# Created by https://www.toptal.com/developers/gitignore/api/c++,windows,visualstudio
-# Edit at https://www.toptal.com/developers/gitignore?templates=c++,windows,visualstudio
+# Created by https://www.toptal.com/developers/gitignore/api/windows,c++,visualstudio
+# Edit at https://www.toptal.com/developers/gitignore?templates=windows,c++,visualstudio
+
+*.bmp
 
 ### C++ ###
 # Prerequisites
@@ -100,8 +102,10 @@ x86/
 bld/
 [Bb]in/
 [Oo]bj/
-[Ll]og/
-[Ll]ogs/
+objectFile/
+objectFiles/
+objFile/
+objectFiles/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -431,6 +435,8 @@ FodyWeavers.xsd
 # Additional files built by Visual Studio
 *.tlog
 
-# End of https://www.toptal.com/developers/gitignore/api/c++,windows,visualstudio
+# End of https://www.toptal.com/developers/gitignore/api/windows,c++,visualstudio
+
 
 *.txt
+*.dmp

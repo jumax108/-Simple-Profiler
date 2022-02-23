@@ -33,7 +33,6 @@ enum class LOG_GROUP{
 	LOG_DEBUG  = 0x1,
 	LOG_ERROR  = 0x2,
 	LOG_SYSTEM = 0x4
-
 };
 
 inline LOG_GROUP operator|(LOG_GROUP left, LOG_GROUP right){
