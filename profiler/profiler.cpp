@@ -2,36 +2,50 @@
 
 void CProfiler::begin(const char name[100]) {
 	
+	/* reset */ {
+		if (_reset == true) {
+			_reset = false;
+			for (int dataCnt = 0; dataCnt < profiler::MAX_PROFILE_NUM; ++dataCnt) {
+				_profile[dataCnt]._sum = 0;
+				_profile[dataCnt]._max = 0;
+				_profile[dataCnt]._min = 0x7FFFFFFFFFFFFFFF;
+				_profile[dataCnt]._callCnt = 0;
+			}
+		}
+	}
+
 	////////////////////////////////////////////////
 	// 기존 profile data 획득
-	Profile* profile = getTlsProfileData();
-	int idx = findIdx(name, profile);
+	int idx = findIdx(name);
 	////////////////////////////////////////////////
 
 	////////////////////////////////////////////////
 	// 기존 데이터가 없으면 생성
 	if(idx == -1){
-		for(idx = 0; idx < 50; idx++){
-			if(profile[idx].callCnt == 0){
-				break;
-			}
+
+		idx = _allocIndex++;
+		if (idx >= profiler::MAX_PROFILE_NUM) {
+			CDump::crash();
 		}
 
-		profile[idx].callCnt = 1;
-		strcpy_s(profile[idx].name, name);
+		_profile[idx]._callCnt = 1;
+		strcpy_s(_profile[idx]._name, name);
+
+		_profile[idx]._threadId = __threadid();
+
 	}
 	////////////////////////////////////////////////
 		
 	////////////////////////////////////////////////
 	// 기존 데이터가 있으면 count 상승
 	else {
-		profile[idx].callCnt += 1;
+		_profile[idx]._callCnt += 1;
 	}
 	////////////////////////////////////////////////
 	
 	////////////////////////////////////////////////
 	// 측정 시작
-	QueryPerformanceCounter(&profile[idx].start);
+	QueryPerformanceCounter(&_profile[idx]._start);
 	////////////////////////////////////////////////
 }
 
@@ -45,8 +59,7 @@ void CProfiler::end(const char name[100]) {
 
 	////////////////////////////////////////////////
 	// 기존 profile data 획득
-	Profile* profile = getTlsProfileData();
-	int idx = findIdx(name, profile);
+	int idx = findIdx(name);
 	////////////////////////////////////////////////
 	
 	////////////////////////////////////////////////
@@ -59,38 +72,17 @@ void CProfiler::end(const char name[100]) {
 	
 	////////////////////////////////////////////////
 	// 전체 시간에 경과 시간 합산
-	profile[idx].sum += endTime.QuadPart - profile[idx].start.QuadPart;
+	_profile[idx]._sum += endTime.QuadPart - _profile[idx]._start.QuadPart;
 	////////////////////////////////////////////////
 }
 
-CProfiler::Profile* CProfiler::getTlsProfileData(){
-	
-	////////////////////////////////////////////////
-	// 기존 데이터 획득
-	Profile* ptr = (Profile*)TlsGetValue(tlsIndex);
-	////////////////////////////////////////////////
-
-	
-	////////////////////////////////////////////////
-	// 기존 데이터가 없다면 생성 후 등록
-	if(ptr == nullptr){
-		int idx  = InterlockedIncrement16((SHORT*)&allocIndex) - 1;
-		ptr = profile[idx];
-		TlsSetValue(tlsIndex, ptr);
-	}
-	////////////////////////////////////////////////
-
-	return ptr;
-
-}
-
-int CProfiler::findIdx(const char* name, Profile* profile) {
+int CProfiler::findIdx(const char* name) {
 		
 	////////////////////////////////////////////////
 	// 이름이 같은 항목 찾아서 인덱스 리턴
 	int idx = 0;
 	for(; idx < 50 ; ++idx){		
-		if(strcmp(name, profile[idx].name) != 0){
+		if(strcmp(name, _profile[idx]._name) != 0){
 			continue;
 		}
 		return idx;
@@ -105,28 +97,37 @@ int CProfiler::findIdx(const char* name, Profile* profile) {
 
 CProfiler::CProfiler(){
 
-	//////////////////////////////////////////////////////////////////////////////////
-	// logger setting
-	logger.setDirectory(L"log");
-	logger.setPrintGroup(LOG_GROUP::LOG_ERROR | LOG_GROUP::LOG_SYSTEM);
-	//////////////////////////////////////////////////////////////////////////////////
+	/* 힙 생성 */ {
+		_heap = HeapCreate(0, 0, 0);
+	}
 
 	//////////////////////////////////////////////////////////////////////////////////
-	// tls 할당
-	tlsIndex = TlsAlloc();
-	if(tlsIndex == TLS_OUT_OF_INDEXES){
-		// tls 할당 실패
-		logger(L"profiler.txt", LOG_GROUP::LOG_ERROR, L"tls alloc error\n%s\n%d\n", __FILEW__, __LINE__);
-		CDump::crash();
-	}
+	// logger setting
+	_logger.setDirectory(L"log");
+	_logger.setPrintGroup(LOG_GROUP::LOG_ERROR | LOG_GROUP::LOG_SYSTEM);
 	//////////////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////////////
 	// 측정 단위는 100ns
-	QueryPerformanceFrequency(&freq);
-	freq.QuadPart /= 10000000;
+	QueryPerformanceFrequency(&_freq);
+	_freq.QuadPart /= 10000000;
 	//////////////////////////////////////////////////////////////////////////////////
 
+	/* profile 배열 할당 */ {
+		_profile = (stProfile*)HeapAlloc(_heap, 0, sizeof(stProfile) * profiler::MAX_PROFILE_NUM);
+		
+		stProfile* profileIter = _profile;
+		stProfile* profileEnd = profileIter + profiler::MAX_PROFILE_NUM;
+
+		for (; profileIter != profileEnd; ++profileIter) {
+			new (profileIter) stProfile();
+		}
+	}
+
+	/* data 초기화 */ {
+		_returnIndex = 0;
+		_reset = false;
+	}
 }
 
 void CProfiler::printToFile() {
@@ -136,23 +137,56 @@ void CProfiler::printToFile() {
 
 	fprintf_s(outFile, "%20s | %15s | %15s | %15s | %15s \n", "Name", "Average", "Min", "Max", "Call");
 		
-	Profile* profile = getTlsProfileData();
+	do {
 
-	for (int idx = 0; idx < 50; ++idx) {
-			
-		if (profile[idx].callCnt > 0) {
-			profile[idx].sum = profile[idx].sum - profile[idx].max - profile[idx].min;
-			profile[idx].callCnt -= 2;
-			fprintf_s(outFile, "%20s | %12.3lf us | %12.3lf us | %12.3lf us | %15d \n",
-				profile[idx].name,
-				profile[idx].sum / (double)freq.QuadPart / profile[idx].callCnt,
-				profile[idx].min / (double)freq.QuadPart,
-				profile[idx].max / (double)freq.QuadPart,
-				profile[idx].callCnt);
+		if (_reset == true) {
+			break;
 		}
-	}
-		
+
+		for (int idx = 0; idx < 50; ++idx) {
+
+			if (_profile[idx]._callCnt > 0) {
+				_profile[idx]._sum = _profile[idx]._sum - _profile[idx]._max - _profile[idx]._min;
+				_profile[idx]._callCnt -= 2;
+				fprintf_s(outFile, "%20s | %12.3lf us | %12.3lf us | %12.3lf us | %15d \n",
+					_profile[idx]._name,
+					_profile[idx]._sum / (double)_freq.QuadPart / _profile[idx]._callCnt,
+					_profile[idx]._min / (double)_freq.QuadPart,
+					_profile[idx]._max / (double)_freq.QuadPart,
+					_profile[idx]._callCnt);
+			}
+		}
+
+	} while (false);
+
 	fclose(outFile);
 
 }
+
+CProfiler::stProfile* CProfiler::begin() {
+
+	_returnIndex = 0;
+	return &_profile[_returnIndex];
+
+}
+
+CProfiler::stProfile* CProfiler::next() {
+
+	_returnIndex += 1;
 	
+	if (_returnIndex == _allocIndex) {
+		return nullptr;
+	}
+
+	return &_profile[_returnIndex];
+
+}
+
+void CProfiler::reset() {
+
+	_reset = true;
+
+	// reset 동작을 요청만하고 실제 reset 작업은 begin에서 진행한다.
+	// 멀티스레드에서 동작할 때, reset 작업과 begin 작업이 동시에 진행되는 상황을 없애기 위함
+
+}
