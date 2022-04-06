@@ -70,9 +70,22 @@ void CProfiler::end(const char name[100]) {
 	}
 	////////////////////////////////////////////////
 	
+	stProfile* profileData = &_profile[idx];
+
 	////////////////////////////////////////////////
-	// 전체 시간에 경과 시간 합산
-	_profile[idx]._sum += endTime.QuadPart - _profile[idx]._start.QuadPart;
+	// 경과 시간 계산
+	long long spendTime = endTime.QuadPart - profileData->_start.QuadPart;
+	////////////////////////////////////////////////
+
+	////////////////////////////////////////////////
+	// 결과 반영
+	profileData->_sum += spendTime;
+	if(profileData->_max < spendTime){
+		profileData->_max = spendTime;
+	}
+	if(profileData->_min > spendTime){
+		profileData->_min = spendTime;
+	}
 	////////////////////////////////////////////////
 }
 
@@ -143,7 +156,7 @@ void CProfiler::printToFile() {
 			break;
 		}
 
-		for (int idx = 0; idx < 50; ++idx) {
+		for (int idx = 0; idx < profiler::MAX_PROFILE_NUM; ++idx) {
 
 			if (_profile[idx]._callCnt > 0) {
 				_profile[idx]._sum = _profile[idx]._sum - _profile[idx]._max - _profile[idx]._min;
