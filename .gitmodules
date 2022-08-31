@@ -1,3 +1,9 @@
 [submodule "profiler/lib/log"]
 	path = profiler/lib/log
 	url = https://github.com/jumax108/log
+[submodule "lib/log"]
+	path = lib/log
+	url = https://github.com/jumax108/log
+[submodule "lib/dump"]
+	path = lib/dump
+	url = https://github.com/jumax108/dump
