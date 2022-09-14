@@ -28,8 +28,8 @@ public:
 	
 	CProfiler();
 
-	void begin(const char tag[100]);
-	void end(const char tag[100]);
+	void begin(const char* tag);
+	void end(const char* tag);
 
 	stProfile* begin();
 	stProfile* next();

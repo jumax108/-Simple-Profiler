@@ -1,6 +1,6 @@
 #include "..\headers\profiler.h"
 
-void CProfiler::begin(const char name[100]) {
+void CProfiler::begin(const char* name) {
 	
 	/* reset */ {
 		if (_reset == true) {
@@ -45,7 +45,7 @@ void CProfiler::begin(const char name[100]) {
 	////////////////////////////////////////////////
 }
 
-void CProfiler::end(const char name[100]) {
+void CProfiler::end(const char* name) {
 		
 	////////////////////////////////////////////////
 	// 측정 종료
