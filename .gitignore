@@ -1,6 +1,6 @@
 /.vs
-*.sln
-*.vcxproj
-*.vcxproj.filters
-*.vcxproj.user
+/MSVC/.vs
+*.bat
+/MSVC/release
+/MSVC/debug
 /lib

@@ -1,4 +1,4 @@
-#include "headers/profiler.h"
+#include "..\headers\profiler.h"
 
 void CProfiler::begin(const char name[100]) {
 	
@@ -14,10 +14,8 @@ void CProfiler::begin(const char name[100]) {
 		}
 	}
 
-	////////////////////////////////////////////////
-	// 기존 profile data 획득
+	/* 기존 데이터 확인 */
 	int idx = findIdx(name);
-	////////////////////////////////////////////////
 
 	////////////////////////////////////////////////
 	// 기존 데이터가 없으면 생성
@@ -29,9 +27,7 @@ void CProfiler::begin(const char name[100]) {
 		}
 
 		_profile[idx]._callCnt = 1;
-		strcpy_s(_profile[idx]._name, name);
-
-		_profile[idx]._threadId = __threadid();
+		strcpy_s(_profile[idx]._tag, name);
 
 	}
 	////////////////////////////////////////////////
@@ -94,8 +90,8 @@ int CProfiler::findIdx(const char* name) {
 	////////////////////////////////////////////////
 	// 이름이 같은 항목 찾아서 인덱스 리턴
 	int idx = 0;
-	for(; idx < 50 ; ++idx){		
-		if(strcmp(name, _profile[idx]._name) != 0){
+	for(; idx < profiler::MAX_PROFILE_NUM; ++idx){
+		if(strcmp(name, _profile[idx]._tag) != 0){
 			continue;
 		}
 		return idx;
@@ -110,25 +106,15 @@ int CProfiler::findIdx(const char* name) {
 
 CProfiler::CProfiler(){
 
-	/* 힙 생성 */ {
-		_heap = HeapCreate(0, 0, 0);
-	}
-
 	//////////////////////////////////////////////////////////////////////////////////
 	// logger setting
 	_logger.setDirectory(L"log");
 	_logger.setPrintGroup(LOG_GROUP::LOG_ERROR | LOG_GROUP::LOG_SYSTEM);
 	//////////////////////////////////////////////////////////////////////////////////
 
-	//////////////////////////////////////////////////////////////////////////////////
-	// 측정 단위는 100ns
-	QueryPerformanceFrequency(&_freq);
-	_freq.QuadPart /= 10000000;
-	//////////////////////////////////////////////////////////////////////////////////
-
 	/* profile 배열 할당 */ {
-		_profile = (stProfile*)HeapAlloc(_heap, 0, sizeof(stProfile) * profiler::MAX_PROFILE_NUM);
-		
+		_profile = (stProfile*)malloc(sizeof(stProfile) * profiler::MAX_PROFILE_NUM);
+					
 		stProfile* profileIter = _profile;
 		stProfile* profileEnd = profileIter + profiler::MAX_PROFILE_NUM;
 
@@ -148,21 +134,23 @@ void CProfiler::printToFile() {
 	FILE* outFile;
 	fopen_s(&outFile, "profiler.txt", "w");
 
+	fprintf_s(outFile, "(100ns)\n");
 	fprintf_s(outFile, "%20s | %15s | %15s | %15s | %15s \n", "Name", "Average", "Min", "Max", "Call");
 		
 	do {
 
+		/* 리셋되어 데이터가 없으면 break */
 		if (_reset == true) {
 			break;
 		}
 
 		for (int idx = 0; idx < profiler::MAX_PROFILE_NUM; ++idx) {
 
-			if (_profile[idx]._callCnt > 0) {
+			if (_profile[idx]._callCnt > 2) {
 				_profile[idx]._sum = _profile[idx]._sum - _profile[idx]._max - _profile[idx]._min;
 				_profile[idx]._callCnt -= 2;
 				fprintf_s(outFile, "%20s | %12.3lf us | %12.3lf us | %12.3lf us | %15d \n",
-					_profile[idx]._name,
+					_profile[idx]._tag,
 					_profile[idx]._sum / (double)_freq.QuadPart / _profile[idx]._callCnt,
 					_profile[idx]._min / (double)_freq.QuadPart,
 					_profile[idx]._max / (double)_freq.QuadPart,
@@ -200,6 +188,6 @@ void CProfiler::reset() {
 	_reset = true;
 
 	// reset 동작을 요청만하고 실제 reset 작업은 begin에서 진행한다.
-	// 멀티스레드에서 동작할 때, reset 작업과 begin 작업이 동시에 진행되는 상황을 없애기 위함
+	// 멀티스레드 버전에서 동작할 때, reset 작업과 begin 작업이 동시에 진행되는 상황을 없애기 위함
 
 }

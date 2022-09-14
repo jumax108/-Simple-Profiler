@@ -4,10 +4,18 @@
 #include <Windows.h>
 
 #include "dump/headers/dump.h"
-#pragma comment(lib, "lib/dump/dump")
+#if defined _DEBUG
+	#pragma comment(lib, "dump/MSVC/debug/dump")
+#else
+	#pragma comment(lib,"dump/MSVC/release/dump")
+#endif
 
 #include "log/headers/log.h"
-#pragma comment(lib, "lib/log/log")
+#if defined _DEBUG
+	#pragma comment(lib, "log/MSVC/debug/log")
+#else
+	#pragma comment(lib,"log/MSVC/release/log")
+#endif
 
 #include "common.h"
 
@@ -20,8 +28,8 @@ public:
 	
 	CProfiler();
 
-	void begin(const char name[100]);
-	void end(const char name[100]);
+	void begin(const char tag[100]);
+	void end(const char tag[100]);
 
 	stProfile* begin();
 	stProfile* next();
@@ -34,8 +42,6 @@ private:
 
 	stProfile* _profile;
 	unsigned int _allocIndex = 0;
-
-	HANDLE _heap;
 
 	LARGE_INTEGER _freq;
 	CLog _logger;
@@ -51,7 +57,7 @@ struct CProfiler::stProfile {
 
 	stProfile() {
 
-		ZeroMemory(_name, sizeof(_name));
+		ZeroMemory(_tag, sizeof(_tag));
 		ZeroMemory(&_start, sizeof(LARGE_INTEGER));
 
 		_sum = 0;
@@ -61,12 +67,11 @@ struct CProfiler::stProfile {
 
 	}
 
-	char _name[100];
+	char _tag[profiler::TAG_LENGTH];
 	LARGE_INTEGER _start;
 	__int64 _sum;
 	__int64 _max;
 	__int64 _min;
 	unsigned int _callCnt;
 
-	unsigned long _threadId;
 };
