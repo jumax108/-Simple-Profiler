@@ -2,20 +2,7 @@
 
 #include <stdio.h>
 #include <Windows.h>
-
-#include "dump/headers/dump.h"
-#if defined _DEBUG
-	#pragma comment(lib, "dump/MSVC/debug/dump")
-#else
-	#pragma comment(lib,"dump/MSVC/release/dump")
-#endif
-
-#include "log/headers/log.h"
-#if defined _DEBUG
-	#pragma comment(lib, "log/MSVC/debug/log")
-#else
-	#pragma comment(lib,"log/MSVC/release/log")
-#endif
+#include <new>
 
 #include "common.h"
 
@@ -28,8 +15,8 @@ public:
 	
 	CProfiler();
 
-	void begin(const char* tag);
-	void end(const char* tag);
+	int begin(const char* tag);
+	int end(const char* tag);
 
 	stProfile* begin();
 	stProfile* next();
@@ -44,7 +31,6 @@ private:
 	unsigned int _allocIndex = 0;
 
 	LARGE_INTEGER _freq;
-	CLog _logger;
 
 	int _returnIndex;
 
@@ -67,7 +53,7 @@ struct CProfiler::stProfile {
 
 	}
 
-	char _tag[profiler::TAG_LENGTH];
+	char _tag[nsProfiler::TAG_LENGTH];
 	LARGE_INTEGER _start;
 	__int64 _sum;
 	__int64 _max;

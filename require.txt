@@ -1,2 +1,0 @@
-git clone https://github.com/jumax108/log
-git clone https://github.com/jumax108/dump
