@@ -18,12 +18,14 @@ public:
 	int begin(const char* tag);
 	int end(const char* tag);
 
-	stProfile* begin();
-	stProfile* next();
-
 	void printToFile();
 
 	void reset();
+
+private:
+	friend class CProfilerTLS;
+	stProfile begin();
+	stProfile next();
 	
 private:
 

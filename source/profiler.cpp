@@ -171,22 +171,24 @@ void CProfiler::printToFile() {
 
 }
 
-CProfiler::stProfile* CProfiler::begin() {
+CProfiler::stProfile CProfiler::begin() {
 
 	_returnIndex = 0;
-	return &_profile[_returnIndex];
+	return _profile[_returnIndex];
 
 }
 
-CProfiler::stProfile* CProfiler::next() {
+CProfiler::stProfile CProfiler::next() {
 
 	_returnIndex += 1;
 	
 	if (_returnIndex == _allocIndex) {
-		return nullptr;
+		stProfile temp;
+		temp._tag[0] = '\0';
+		return temp;
 	}
 
-	return &_profile[_returnIndex];
+	return _profile[_returnIndex];
 
 }
 
